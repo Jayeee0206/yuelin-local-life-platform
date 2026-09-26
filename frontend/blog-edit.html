@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f26a3d">
+  <title>发布生活灵感 · 悦邻生活</title>
+  <link rel="stylesheet" href="./css/element.css?v=20260922-3"><link rel="stylesheet" href="./css/main.css?v=20260922-3"><link rel="stylesheet" href="./css/blog-edit.css?v=20260922-3"><link rel="stylesheet" href="./css/theme.css?v=20260922-3">
+</head>
+<body class="page-blog-edit"><div id="app">
+  <header class="header"><button class="header-cancel-btn" type="button" @click="goBack">取消</button><h1 class="header-title">发布生活灵感</h1><button class="header-commit-btn" type="button" @click="submitBlog" :disabled="submitting || uploading">{{submitting ? '发布中...' : '发布'}}</button></header>
+  <main>
+    <section class="upload-box">
+      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" @change="fileSelected" ref="fileInput" hidden>
+      <button class="upload-btn" type="button" @click="openFileDialog" :disabled="uploading || fileList.length >= 9"><i :class="uploading ? 'el-icon-loading' : 'el-icon-camera'"></i><span>{{uploading ? '上传中' : (fileList.length >= 9 ? '已达9张' : '上传照片')}}</span></button>
+      <div class="pic-list"><div class="pic-box" v-for="(file,index) in fileList" :key="file"><img :src="file" :alt="'待发布图片 ' + (index+1)"><button type="button" class="pic-delete" @click="deletePic(index)" :aria-label="'删除第' + (index+1) + '张图片'"><i class="el-icon-close"></i></button></div></div>
+    </section>
+    <section class="blog-title"><input v-model.trim="params.title" maxlength="255" type="text" placeholder="给这次分享起个标题"></section>
+    <section class="blog-content"><textarea v-model.trim="params.content" maxlength="2000" placeholder="记录环境、服务、菜品或一段值得分享的生活体验"></textarea><small>{{params.content.length}} / 2000</small></section>
+    <button class="blog-shop" type="button" @click="showDialog=true"><span class="shop-left">关联商户</span><strong v-if="selectedShop.name">{{selectedShop.name}}</strong><span v-else>去选择 <i class="el-icon-arrow-right"></i></span></button>
+  </main>
+  <div class="mask" v-show="showDialog" @click="showDialog=false"></div>
+  <transition name="el-zoom-in-bottom"><section class="shop-dialog" v-show="showDialog" role="dialog" aria-modal="true" aria-label="选择关联商户">
+    <header class="dialog-title"><strong>选择关联商户</strong><button type="button" @click="showDialog=false" aria-label="关闭"><i class="el-icon-close"></i></button></header>
+    <div class="search-bar"><span class="city-select">杭州</span><div class="search-input"><i class="el-icon-search"></i><input v-model.trim="shopName" type="text" placeholder="搜索商户名称" @keyup.enter="queryShops"><button type="button" @click="queryShops">搜索</button></div></div>
+    <div class="shop-list"><button v-for="shop in shops" :key="shop.id" type="button" class="shop-item" @click="selectShop(shop)"><span class="shop-name">{{shop.name}}</span><span>{{shop.area}}</span></button><div class="feature-empty" v-if="!shops.length">没有找到匹配商户</div></div>
+  </section></transition>
+</div>
+<script src="./js/vue.js?v=20260922-3"></script><script src="./js/axios.min.js?v=20260922-3"></script><script src="./js/element.js?v=20260922-3"></script><script src="./js/common.js?v=20260922-3"></script>
+<script>
+new Vue({
+  el:'#app',
+  data(){return{util,fileList:[],params:{title:'',content:''},showDialog:false,shops:[],shopName:'',selectedShop:{},submitting:false,uploading:false};},
+  created(){if(this.checkLogin())this.queryShops();},
+  methods:{
+    queryShops(){axios.get('/shop/of/name',{params:{name:this.shopName}}).then(({data})=>{this.shops=data||[];}).catch(err=>this.$message.error(util.errorMessage(err)));},
+    selectShop(shop){this.selectedShop=shop;this.showDialog=false;},
+    submitBlog(){
+      if(this.submitting||this.uploading)return;
+      if(!this.params.title)return this.$message.error('请填写标题');
+      if(!this.params.content)return this.$message.error('请填写笔记内容');
+      if(!this.fileList.length)return this.$message.error('请至少上传一张图片');
+      if(!this.selectedShop.id)return this.$message.error('请选择关联商户');
+      this.submitting=true;
+      const data={title:this.params.title,content:this.params.content,images:this.fileList.join(','),shopId:this.selectedShop.id};
+      axios.post('/blog',data).then(()=>{this.$message.success('发布成功');setTimeout(()=>location.href='/info.html',300);}).catch(err=>this.$message.error(util.errorMessage(err))).finally(()=>{this.submitting=false;});
+    },
+    openFileDialog(){if(!this.uploading&&this.fileList.length<9)this.$refs.fileInput.click();},
+    fileSelected(){
+      const file=this.$refs.fileInput.files[0];if(!file)return;
+      const types=['image/jpeg','image/png','image/webp','image/gif'];
+      if(!types.includes(file.type)){this.$refs.fileInput.value='';return this.$message.error('仅支持 jpg、png、webp 或 gif 图片');}
+      if(file.size>5*1024*1024){this.$refs.fileInput.value='';return this.$message.error('图片不能超过5MB');}
+      const formData=new FormData();formData.append('file',file);this.uploading=true;
+      axios.post('/upload/blog',formData).then(({data})=>this.fileList.push('/uploads'+data)).catch(err=>this.$message.error(util.errorMessage(err))).finally(()=>{this.uploading=false;this.$refs.fileInput.value='';});
+    },
+    deletePic(index){const file=this.fileList[index];axios.delete('/upload/blog',{params:{name:file}}).then(()=>this.fileList.splice(index,1)).catch(err=>this.$message.error(util.errorMessage(err)));},
+    checkLogin(){if(!sessionStorage.getItem('token')){location.href='/login.html?redirect='+encodeURIComponent('/blog-edit.html');return false;}axios.get('/user/me').catch(err=>{this.$message.error(util.errorMessage(err));setTimeout(()=>location.href='/login.html?redirect='+encodeURIComponent('/blog-edit.html'),300);});return true;},
+    goBack(){history.length>1?history.back():location.href='/';}
+  }
+});
+</script></body></html>

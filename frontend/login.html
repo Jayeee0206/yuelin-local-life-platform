@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 悦邻生活</title>
+  <link rel="stylesheet" href="./css/element.css?v=20260922-3">
+  <link rel="stylesheet" href="./css/main.css?v=20260922-3">
+  <link rel="stylesheet" href="./css/login.css?v=20260922-3">
+  <link rel="stylesheet" href="./css/theme.css?v=20260922-3">
+</head>
+<body class="page-login">
+<div id="app">
+  <section class="login-container" aria-labelledby="login-title">
+    <header class="header">
+      <button class="header-back-btn" type="button" @click="goBack" aria-label="返回"><i class="el-icon-arrow-left"></i></button>
+      <h1 id="login-title" class="header-title">手机验证码登录</h1>
+    </header>
+    <div class="content">
+      <div class="login-form">
+        <label class="field-label" for="phone">手机号</label>
+        <div class="code-row">
+          <el-input id="phone" placeholder="请输入11位手机号" maxlength="11" v-model.trim="form.phone"></el-input>
+          <el-button class="code-button" @click="sendCode" :loading="sending" :disabled="disabled">{{codeBtnMsg}}</el-button>
+        </div>
+        <label class="field-label" for="code">验证码</label>
+        <el-input id="code" placeholder="请输入6位验证码" maxlength="6" v-model.trim="form.code" @keyup.enter.native="login"></el-input>
+        <p class="login-hint">开发环境验证码会输出在 VS Code 后端控制台；首次验证成功将自动创建账户。</p>
+        <el-button class="login-submit" type="primary" @click="login" :loading="loggingIn">登录</el-button>
+      </div>
+      <label class="agreement-check">
+        <input type="checkbox" v-model="agreed">
+        <span>我已阅读并同意 <a href="/terms.html">《用户服务协议》</a> 与 <a href="/privacy.html">《隐私政策》</a></span>
+      </label>
+    </div>
+  </section>
+</div>
+<script src="./js/vue.js?v=20260922-3"></script>
+<script src="./js/axios.min.js?v=20260922-3"></script>
+<script src="./js/element.js?v=20260922-3"></script>
+<script src="./js/common.js?v=20260922-3"></script>
+<script>
+new Vue({
+  el: "#app",
+  data: {
+    agreed: false,
+    disabled: false,
+    sending: false,
+    loggingIn: false,
+    codeBtnMsg: "发送验证码",
+    form: {phone: "", code: ""},
+    timer: null
+  },
+  beforeDestroy() { if (this.timer) clearInterval(this.timer); },
+  methods: {
+    validPhone() { return /^1\d{10}$/.test(this.form.phone); },
+    login() {
+      if (!this.agreed) return this.$message.error("请先阅读并同意用户协议与隐私政策");
+      if (!this.validPhone()) return this.$message.error("请输入正确的11位手机号");
+      if (!/^\d{6}$/.test(this.form.code)) return this.$message.error("请输入6位数字验证码");
+      this.loggingIn = true;
+      axios.post("/user/login", this.form)
+        .then(({data}) => {
+          sessionStorage.setItem("token", data);
+          const redirect = util.getUrlParam("redirect");
+          let destination = "/index.html";
+          try {
+            const target = new URL(redirect || destination, location.origin);
+            if (target.origin === location.origin && target.pathname.endsWith(".html")) destination = target.pathname + target.search + target.hash;
+          } catch (invalid) { /* Keep the safe local landing page. */ }
+          location.href = destination;
+        })
+        .catch(err => this.$message.error(util.errorMessage(err)))
+        .finally(() => { this.loggingIn = false; });
+    },
+    goBack() { history.length > 1 ? history.back() : location.href = "/"; },
+    sendCode() {
+      if (!this.validPhone()) return this.$message.error("请输入正确的11位手机号");
+      this.sending = true;
+      axios.post("/user/code", null, {params: {phone: this.form.phone}})
+        .then(() => {
+          this.$message.success("验证码已生成，请查看后端控制台");
+          this.startCountdown();
+        })
+        .catch(err => this.$message.error(util.errorMessage(err)))
+        .finally(() => { this.sending = false; });
+    },
+    startCountdown() {
+      let seconds = 60;
+      this.disabled = true;
+      this.codeBtnMsg = seconds + "秒后可重发";
+      if (this.timer) clearInterval(this.timer);
+      this.timer = setInterval(() => {
+        seconds -= 1;
+        this.codeBtnMsg = seconds + "秒后可重发";
+        if (seconds <= 0) {
+          clearInterval(this.timer);
+          this.timer = null;
+          this.disabled = false;
+          this.codeBtnMsg = "发送验证码";
+        }
+      }, 1000);
+    }
+  }
+});
+</script>
+</body>
+</html>

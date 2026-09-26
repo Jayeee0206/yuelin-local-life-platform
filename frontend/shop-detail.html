@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f26a3d">
+  <title>商户详情 · 悦邻生活</title>
+  <link rel="stylesheet" href="./css/element.css?v=20260922-3">
+  <link rel="stylesheet" href="./css/shop-detail.css?v=20260922-3">
+  <link rel="stylesheet" href="./css/main.css?v=20260922-3">
+  <link rel="stylesheet" href="./css/theme.css?v=20260922-3">
+</head>
+<body class="page-shop-detail">
+<div id="app">
+  <header class="header">
+    <button class="header-back-btn" type="button" @click="goBack" aria-label="返回"><i class="el-icon-arrow-left"></i></button>
+    <h1 class="header-title">商户详情</h1>
+    <span class="header-spacer" aria-hidden="true"></span>
+  </header>
+
+  <main>
+    <section class="shop-info-box" v-if="shop.id">
+      <h2 class="shop-title">{{shop.name}}</h2>
+      <div class="shop-rate">
+        <el-rate disabled :value="(shop.score || 0) / 10" text-color="#F63" show-score></el-rate>
+        <span>{{shop.comments || 0}}条评价</span>
+      </div>
+      <div class="shop-rate-info shop-meta">
+        <span>{{shop.area || '本地好店'}}</span>
+        <span v-if="shop.avgPrice">人均 ￥{{shop.avgPrice}}</span>
+      </div>
+      <div class="shop-images" v-if="shop.images && shop.images.length">
+        <div v-for="(image,index) in shop.images" :key="index"><img :src="image" :alt="shop.name + '环境图 ' + (index + 1)" loading="lazy"></div>
+      </div>
+      <div class="shop-address"><i class="el-icon-map-location"></i><span>{{shop.address || '商户暂未填写地址'}}</span></div>
+    </section>
+    <section class="shop-info-box shop-empty-card" v-else>正在加载商户信息...</section>
+
+    <section class="shop-open-time" v-if="shop.id">
+      <span><i class="el-icon-watch"></i></span>
+      <strong>营业时间</strong>
+      <span>{{shop.openHours || '以门店公示为准'}}</span>
+      <small>到店前建议确认营业状态</small>
+    </section>
+
+    <section class="shop-voucher">
+      <div class="section-inline-title"><span class="voucher-icon">券</span><strong>优惠券</strong></div>
+      <template v-if="availableVouchers.length">
+        <article class="voucher-box" v-for="v in availableVouchers" :key="v.id">
+          <div class="voucher-left">
+            <div class="voucher-title">{{v.title}}</div>
+            <div class="voucher-subtitle">{{v.subTitle}}</div>
+            <div class="voucher-price"><div>￥{{util.formatPrice(v.payValue)}}</div><span>{{discount(v)}}折</span></div>
+          </div>
+          <div class="voucher-right">
+            <div v-if="v.type" class="seckill-box">
+              <button type="button" class="voucher-btn" :class="{'disable-btn': isNotBegin(v) || v.stock < 1}" :disabled="isNotBegin(v) || v.stock < 1 || orderingId === v.id" @click="seckill(v)">{{orderingId === v.id ? '提交中' : '限时抢购'}}</button>
+              <div class="seckill-stock">剩余 <span>{{v.stock}}</span> 张</div>
+              <div class="seckill-time">{{formatTime(v)}}</div>
+            </div>
+            <span class="voucher-btn voucher-static" v-else>到店使用</span>
+          </div>
+        </article>
+      </template>
+      <div class="feature-empty" v-else>当前暂无可领取优惠券</div>
+    </section>
+
+    <section class="shop-status-note">
+      <div><i class="el-icon-chat-dot-round"></i></div>
+      <div><strong>真实评价功能暂未开放</strong><p>当前页面仅展示数据库中的商户资料和评价数量，不提供无效的评论入口。</p></div>
+    </section>
+  </main>
+  <footer class="copyright">悦邻生活 · 发现身边的好生活 © 2026</footer>
+</div>
+<script src="./js/vue.js?v=20260922-3"></script>
+<script src="./js/axios.min.js?v=20260922-3"></script>
+<script src="./js/element.js?v=20260922-3"></script>
+<script src="./js/common.js?v=20260922-3"></script>
+<script>
+new Vue({
+  el: '#app',
+  data: {util, shop: {}, vouchers: [], orderingId: null},
+  computed: {
+    availableVouchers() { return (this.vouchers || []).filter(v => !v.type || !this.isEnd(v)); }
+  },
+  created() {
+    const shopId = util.getUrlParam('id');
+    if (!/^\d+$/.test(shopId)) {
+      this.$message.error('商户参数无效');
+      return;
+    }
+    this.queryShopById(shopId);
+    this.queryVoucher(shopId);
+  },
+  methods: {
+    goBack() { history.length > 1 ? history.back() : location.href = '/shop-list.html?type=1&name=' + encodeURIComponent('美食'); },
+    queryShopById(shopId) {
+      axios.get('/shop/' + shopId).then(({data}) => {
+        data = data || {};
+        data.images = (data.images || '').split(',').filter(Boolean);
+        this.shop = data;
+      }).catch(err => this.$message.error(util.errorMessage(err)));
+    },
+    queryVoucher(shopId) {
+      axios.get('/voucher/list/' + shopId).then(({data}) => { this.vouchers = data || []; })
+        .catch(err => this.$message.error(util.errorMessage(err)));
+    },
+    discount(v) {
+      const actual = Number(v.actualValue);
+      return actual > 0 ? ((Number(v.payValue) * 10) / actual).toFixed(1) : '-';
+    },
+    formatTime(v) {
+      const begin = new Date(v.beginTime);
+      const end = new Date(v.endTime);
+      if (Number.isNaN(begin.getTime()) || Number.isNaN(end.getTime())) return '';
+      return (begin.getMonth() + 1) + '月' + begin.getDate() + '日 ' + begin.getHours() + ':' + this.formatMinutes(begin.getMinutes()) + ' ~ ' + end.getHours() + ':' + this.formatMinutes(end.getMinutes());
+    },
+    formatMinutes(value) { return value < 10 ? '0' + value : value; },
+    isNotBegin(v) { return !!v.type && !!v.beginTime && new Date(v.beginTime).getTime() > Date.now(); },
+    isEnd(v) { return !!v.type && !!v.endTime && new Date(v.endTime).getTime() < Date.now(); },
+    seckill(v) {
+      if (!util.requireLogin() || this.orderingId) return;
+      if (this.isNotBegin(v)) return this.$message.error('优惠券抢购尚未开始');
+      if (this.isEnd(v)) return this.$message.error('优惠券抢购已经结束');
+      if (v.stock < 1) return this.$message.error('库存不足，请刷新后重试');
+      this.orderingId = v.id;
+      axios.post('/voucher-order/seckill/' + v.id)
+        .then(({data}) => this.$message.success('抢购请求已提交，订单号：' + data))
+        .catch(err => this.$message.error(util.errorMessage(err)))
+        .finally(() => { this.orderingId = null; });
+    }
+  }
+});
+</script>
+</body>
+</html>

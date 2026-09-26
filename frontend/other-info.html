@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f26a3d"><title>邻里主页 · 悦邻生活</title><link rel="stylesheet" href="./css/element.css?v=20260922-3"><link rel="stylesheet" href="./css/main.css?v=20260922-3"><link rel="stylesheet" href="./css/info.css?v=20260922-3"><link rel="stylesheet" href="./css/theme.css?v=20260922-3"></head>
+<body class="page-other-info"><div id="app">
+<header class="header"><button class="header-back-btn" type="button" @click="goBack" aria-label="返回"><i class="el-icon-arrow-left"></i></button><h1 class="header-title">邻里主页</h1><span class="header-spacer" aria-hidden="true"></span></header>
+<section class="basic" v-if="user.id"><div class="basic-icon"><img :src="user.icon || '/imgs/icons/default-icon.svg'" :alt="user.nickName"></div><div class="basic-info"><div class="name">{{user.nickName}}</div><span>{{info.city || '未设置城市'}}</span></div><button class="logout-btn" type="button" v-if="loginUser.id !== user.id" @click="follow">{{followed?'取消关注':'关注'}}</button><span class="self-label" v-else>这是你自己</span></section>
+<div class="introduce"><span v-if="info.introduce">{{info.introduce}}</span><span v-else>这位邻居还没有填写个人介绍</span></div>
+<section class="content"><el-tabs v-model="activeName" @tab-click="handleClick">
+<el-tab-pane label="笔记" name="1"><div class="empty-profile-list" v-if="!blogs.length">这位邻居还没有发布笔记。</div><button v-for="blog in blogs" :key="blog.id" type="button" class="blog-item" @click="toBlogDetail(blog)"><span class="blog-img"><img :src="firstImage(blog.images)" :alt="blog.title"></span><span class="blog-info"><strong class="blog-title">{{blog.title}}</strong><span class="blog-liked">♥ {{blog.liked || 0}}</span></span></button></el-tab-pane>
+<el-tab-pane label="共同关注" name="2"><div class="empty-profile-list" v-if="!commonFollows.length">暂时没有共同关注的人。</div><div class="follow-info" v-for="person in commonFollows" :key="person.id"><button class="follow-info-icon" type="button" @click="toOtherInfo(person.id)"><img :src="person.icon || '/imgs/icons/default-icon.svg'" :alt="person.nickName"></button><div class="follow-info-name"><div class="name">{{person.nickName}}</div></div><button class="follow-info-btn" type="button" @click="toOtherInfo(person.id)">查看主页</button></div></el-tab-pane>
+</el-tabs></section><foot-bar :active-btn="0"></foot-bar></div>
+<script src="./js/vue.js?v=20260922-3"></script><script src="./js/axios.min.js?v=20260922-3"></script><script src="./js/element.js?v=20260922-3"></script><script src="./js/common.js?v=20260922-3"></script><script src="./js/footer.js?v=20260922-3"></script>
+<script>
+new Vue({el:'#app',data:{util,user:{},loginUser:{},activeName:'1',info:{},blogs:[],followed:false,commonFollows:[]},created(){const id=util.getUrlParam('id');if(!/^\d+$/.test(id))return this.$message.error('用户参数无效');this.queryUser(id);this.queryLoginUser();},methods:{
+firstImage(images){return(images||'').split(',')[0]||'/imgs/blogs/placeholder.svg';},
+queryBlogs(){axios.get('/blog/of/user',{params:{id:this.user.id,current:1}}).then(({data})=>{this.blogs=data||[];}).catch(err=>this.$message.error(util.errorMessage(err)));},
+queryLoginUser(){if(!sessionStorage.getItem('token'))return;axios.get('/user/me').then(({data})=>{this.loginUser=data||{};if(this.user.id&&this.loginUser.id!==this.user.id)this.isFollowed();}).catch(()=>{});},
+queryUser(id){axios.get('/user/public/'+id).then(({data})=>{if(!data||!data.id)throw '用户不存在';this.user=data;this.queryUserInfo();this.queryBlogs();if(this.loginUser.id&&this.loginUser.id!==this.user.id)this.isFollowed();}).catch(err=>this.$message.error(util.errorMessage(err)));},
+goBack(){history.length>1?history.back():location.href='/';},
+queryUserInfo(){axios.get('/user/public-info/'+this.user.id).then(({data})=>{this.info=data||{};}).catch(err=>this.$message.error(util.errorMessage(err)));},
+isFollowed(){axios.get('/follow/or/not/'+this.user.id).then(({data})=>{this.followed=!!data;}).catch(err=>this.$message.error(util.errorMessage(err)));},
+queryCommonFollow(){if(!util.requireLogin())return;axios.get('/follow/common/'+this.user.id).then(({data})=>{this.commonFollows=data||[];}).catch(err=>this.$message.error(util.errorMessage(err)));},
+follow(){if(!util.requireLogin())return;axios.put('/follow/'+this.user.id+'/'+!this.followed).then(()=>{this.$message.success(this.followed?'已取消关注':'已关注');this.followed=!this.followed;}).catch(err=>this.$message.error(util.errorMessage(err)));},
+handleClick(tab){if(tab.name==='2')this.queryCommonFollow();},
+toOtherInfo(id){location.href='/other-info.html?id='+encodeURIComponent(id);},toBlogDetail(blog){location.href='/blog-detail.html?id='+encodeURIComponent(blog.id);}
+}});
+</script></body></html>

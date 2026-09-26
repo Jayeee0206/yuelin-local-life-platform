@@ -1,0 +1,84 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  application:
+    name: yuelin-local-life
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/yuelin_local_life?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia%2FShanghai&characterEncoding=utf8}
+    username: ${DB_USERNAME:yuelin}
+    password: ${DB_PASSWORD:}
+  redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 1
+        time-between-eviction-runs: 10s
+    database: 6
+  jackson:
+    default-property-inclusion: non_null
+  rabbitmq:
+    dynamic: ${YUELIN_MESSAGING_ENABLED:false}
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:}
+    password: ${RABBITMQ_PASSWORD:}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+      retry:
+        enabled: true
+        initial-interval: 200ms
+        max-attempts: 3
+        multiplier: 2
+        max-interval: 1s
+    listener:
+      simple:
+        auto-startup: ${YUELIN_MESSAGING_ENABLED:false}
+        concurrency: 4
+        max-concurrency: 10
+        prefetch: 1
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+          multiplier: 2
+          max-interval: 2s
+
+server:
+  port: 8082
+
+mybatis-plus:
+  type-aliases-package: com.yuelin.entity
+
+logging:
+  level:
+    com.yuelin: ${LOG_LEVEL:info}
+
+yuelin:
+  security:
+    admin-user-ids: ${YUELIN_ADMIN_USER_IDS:}
+  messaging:
+    enabled: ${YUELIN_MESSAGING_ENABLED:false}
+  seckill:
+    request-rate-per-second: ${SECKILL_REQUEST_RATE_PER_SECOND:1000}
+    reconcile:
+      initial-delay-ms: ${SECKILL_RECONCILE_INITIAL_DELAY_MS:30000}
+      interval-ms: ${SECKILL_RECONCILE_INTERVAL_MS:30000}
+      timeout-ms: ${SECKILL_RECONCILE_TIMEOUT_MS:60000}
+      batch-size: ${SECKILL_RECONCILE_BATCH_SIZE:100}
+      max-retries: ${SECKILL_RECONCILE_MAX_RETRIES:3}
+    audit:
+      initial-delay-ms: ${SECKILL_AUDIT_INITIAL_DELAY_MS:60000}
+      interval-ms: ${SECKILL_AUDIT_INTERVAL_MS:60000}

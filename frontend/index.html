@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <meta name="theme-color" content="#f26a3d">
+  <meta name="description" content="悦邻本地生活服务平台，发现身边好店，分享城市生活灵感。">
+  <title>悦邻生活 · 发现身边的好生活</title>
+  <link rel="stylesheet" href="./css/element.css?v=20260922-3">
+  <link href="./css/main.css?v=20260922-3" rel="stylesheet">
+  <link href="./css/index.css?v=20260922-3" rel="stylesheet">
+</head>
+<body>
+<div id="app">
+  <header class="search-bar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="悦邻首页">
+        <span class="brand-mark">悦</span>
+        <span class="brand-copy"><strong>悦邻</strong><small>发现身边的好生活</small></span>
+      </a>
+      <span class="city-label"><i class="el-icon-location-outline"></i> 杭州</span>
+      <div class="search-input">
+        <el-input placeholder="搜索商户名称" v-model.trim="searchKeyword" @keyup.enter.native="searchShops">
+          <i slot="prefix" class="el-input__icon el-icon-search"></i>
+        </el-input>
+        <button class="search-submit" type="button" @click="searchShops" aria-label="搜索">搜索</button>
+      </div>
+      <button class="header-icon" type="button" @click="goProfile">
+        <i class="el-icon-user"></i><span>个人中心</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="home-shell">
+    <section class="hero-card">
+      <div class="hero-copy">
+        <span class="eyebrow">YUELIN · LOCAL LIFE</span>
+        <h1>把城市烟火，装进你的悦邻生活</h1>
+        <p>发现好店、分享探店灵感，与邻里一起收藏值得奔赴的日常。</p>
+        <div class="hero-actions">
+          <button type="button" class="primary-action" @click="toShopList(1, '美食')">探索附近好店</button>
+          <button type="button" class="secondary-action" @click="goPublish">发布生活灵感</button>
+        </div>
+      </div>
+      <div class="hero-stats" aria-label="悦邻数据概览">
+        <div><strong>{{types.length || 10}}+</strong><span>生活分类</span></div>
+        <div><strong>14</strong><span>精选好店</span></div>
+        <div><strong>{{blogs.length || 8}}+</strong><span>邻里分享</span></div>
+      </div>
+    </section>
+
+    <section class="surface category-section">
+      <div class="section-heading">
+        <div><span class="section-kicker">便捷分类</span><h2>今天想去哪里？</h2></div>
+        <p>从熟悉的街角出发，找到合心意的城市体验</p>
+      </div>
+      <div class="type-list">
+        <button class="type-box" type="button" v-for="t in types" :key="t.id" @click="toShopList(t.id, t.name)">
+          <span class="type-view" aria-hidden="true">{{t.name.slice(0, 1)}}</span>
+          <span class="type-text">{{t.name}}</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="discovery-section">
+      <div class="section-heading discovery-heading">
+        <div><span class="section-kicker">邻里精选</span><h2>值得收藏的生活灵感</h2></div>
+        <p>真实体验与城市新鲜事，在这里慢慢发现</p>
+      </div>
+      <div class="blog-list">
+        <article class="blog-box" v-for="b in blogs" :key="b.id">
+          <button class="blog-img" type="button" @click="toBlogDetail(b)">
+            <img :src="b.img" :alt="b.title" loading="lazy">
+            <span class="card-badge">邻里推荐</span>
+          </button>
+          <div class="blog-content">
+            <h3 class="blog-title" @click="toBlogDetail(b)">{{b.title}}</h3>
+            <div class="blog-foot">
+              <div class="blog-author">
+                <span class="blog-user-icon"><img :src="b.icon || '/imgs/icons/default-icon.svg'" :alt="b.name"></span>
+                <span class="blog-user-name">{{b.name}}</span>
+              </div>
+              <button class="blog-liked" type="button" :class="{'is-liked': b.isLike}" @click.stop="addLike(b)">
+                <span class="like-heart">♥</span><span>{{b.liked}}</span>
+              </button>
+            </div>
+          </div>
+        </article>
+        <div class="empty-state" v-if="!blogs.length">
+          <i class="el-icon-loading"></i><span>正在寻找附近的新鲜事...</span>
+        </div>
+      </div>
+      <button class="load-more" type="button" v-if="blogs.length && !noMore" :disabled="loadingBlogs" @click="loadMore">
+        {{loadingBlogs ? '加载中...' : '加载更多邻里故事'}} <i class="el-icon-arrow-down"></i>
+      </button>
+      <p class="list-end" v-if="blogs.length && noMore">已经看到全部邻里故事了</p>
+    </section>
+  </main>
+
+  <foot-bar :active-btn="1"></foot-bar>
+</div>
+<script src="./js/vue.js?v=20260922-3"></script>
+<script src="./js/axios.min.js?v=20260922-3"></script>
+<script src="./js/element.js?v=20260922-3"></script>
+<script src="./js/common.js?v=20260922-3"></script>
+<script src="./js/footer.js?v=20260922-3"></script>
+<script>
+const app = new Vue({
+  el: "#app",
+  data: {
+    types: [],
+    blogs: [],
+    current: 1,
+    searchKeyword: "",
+    loadingBlogs: false,
+    noMore: false
+  },
+  created() {
+    this.queryTypes();
+    this.queryHotBlogsScroll();
+  },
+  methods: {
+    queryTypes() {
+      axios.get("/shop-type/list")
+        .then(({data}) => { this.types = data || []; })
+        .catch(err => this.$message.error(util.errorMessage(err)));
+    },
+    queryHotBlogsScroll(currentPage = this.current) {
+      if (this.loadingBlogs || this.noMore) return;
+      this.loadingBlogs = true;
+      axios.get("/blog/hot", {params: {current: currentPage}})
+        .then(({data}) => {
+          const page = data || [];
+          page.forEach(b => b.img = (b.images || "").split(",")[0] || "/imgs/blogs/placeholder.svg");
+          this.blogs = this.blogs.concat(page);
+          this.current = currentPage;
+          if (!page.length) this.noMore = true;
+        })
+        .catch(err => this.$message.error(util.errorMessage(err)))
+        .finally(() => { this.loadingBlogs = false; });
+    },
+    loadMore() { this.queryHotBlogsScroll(this.current + 1); },
+    addLike(b) {
+      if (!util.requireLogin()) return;
+      axios.put("/blog/like/" + b.id)
+        .then(() => this.queryBlogById(b))
+        .catch(err => this.$message.error(util.errorMessage(err)));
+    },
+    queryBlogById(b) {
+      axios.get("/blog/" + b.id)
+        .then(({data}) => {
+          b.liked = data.liked;
+          b.isLike = data.isLike;
+        })
+        .catch(err => this.$message.error(util.errorMessage(err)));
+    },
+    searchShops() {
+      if (!this.searchKeyword) {
+        this.$message.warning("请输入商户名称");
+        return;
+      }
+      location.href = "/shop-list.html?keyword=" + encodeURIComponent(this.searchKeyword);
+    },
+    goProfile() { location.href = "/info.html"; },
+    goPublish() { location.href = "/blog-edit.html"; },
+    toShopList(id, name) {
+      location.href = "/shop-list.html?type=" + encodeURIComponent(id) + "&name=" + encodeURIComponent(name);
+    },
+    toBlogDetail(b) { location.href = "/blog-detail.html?id=" + encodeURIComponent(b.id); }
+  }
+});
+</script>
+</body>
+</html>

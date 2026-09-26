@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>编辑资料 · 悦邻生活</title><link rel="stylesheet" href="./css/element.css?v=20260922-3"><link rel="stylesheet" href="./css/main.css?v=20260922-3"><link rel="stylesheet" href="./css/info.css?v=20260922-3"><link rel="stylesheet" href="./css/theme.css?v=20260922-3"></head>
+<body class="page-info-edit"><div id="app">
+<header class="header"><button class="header-back-btn" type="button" @click="goBack" aria-label="返回"><i class="el-icon-arrow-left"></i></button><div class="header-title">编辑个人资料</div><button class="profile-save-top" type="button" @click="save" :disabled="saving">保存</button></header>
+<main class="edit-container profile-editor">
+  <section class="info-box avatar-editor"><div class="profile-avatar"><img :src="form.icon || '/imgs/icons/default-icon.svg'" alt="头像"></div><div><h2>个人头像</h2><p>支持 jpg、png、webp 或 gif，建议不超过5MB</p><button type="button" class="upload-avatar" @click="$refs.avatar.click()" :disabled="uploading">{{uploading ? '上传中...' : '选择图片'}}</button><input ref="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden @change="uploadAvatar"></div></section>
+  <section class="info-box profile-fields">
+    <label>昵称<el-input maxlength="32" show-word-limit v-model.trim="form.nickName"></el-input></label>
+    <label>个人介绍<el-input type="textarea" :rows="4" maxlength="128" show-word-limit v-model.trim="form.introduce"></el-input></label>
+    <div class="profile-grid"><label>城市<el-input maxlength="32" v-model.trim="form.city" placeholder="例如：杭州"></el-input></label>
+    <label>性别<el-select v-model="form.gender" placeholder="请选择"><el-option label="男" :value="false"></el-option><el-option label="女" :value="true"></el-option></el-select></label></div>
+    <label>生日<el-date-picker v-model="form.birthday" type="date" value-format="yyyy-MM-dd" placeholder="选择生日"></el-date-picker></label>
+  </section>
+  <button class="profile-save" type="button" @click="save" :disabled="saving">{{saving ? '保存中...' : '保存资料'}}</button>
+</main><foot-bar :active-btn="4"></foot-bar></div>
+<script src="./js/vue.js?v=20260922-3"></script><script src="./js/axios.min.js?v=20260922-3"></script><script src="./js/element.js?v=20260922-3"></script><script src="./js/common.js?v=20260922-3"></script><script src="./js/footer.js?v=20260922-3"></script>
+<script>new Vue({el:'#app',data:{user:{},form:{nickName:'',icon:'',city:'',introduce:'',gender:null,birthday:''},saving:false,uploading:false},created(){this.load();},methods:{
+load(){axios.get('/user/me').then(({data})=>{this.user=data;this.form.nickName=data.nickName||'';this.form.icon=data.icon||'';return axios.get('/user/info/'+data.id)}).then(({data})=>{data=data||{};this.form.city=data.city||'';this.form.introduce=data.introduce||'';this.form.gender=typeof data.gender==='boolean'?data.gender:null;this.form.birthday=data.birthday||'';}).catch(err=>{this.$message.error(util.errorMessage(err));setTimeout(()=>location.href='/login.html',500);});},
+uploadAvatar(){const file=this.$refs.avatar.files[0];if(!file)return;const types=['image/jpeg','image/png','image/webp','image/gif'];if(!types.includes(file.type)){this.$refs.avatar.value='';return this.$message.error('仅支持 jpg、png、webp 或 gif 图片');}if(file.size>5*1024*1024){this.$refs.avatar.value='';return this.$message.error('图片不能超过5MB');}const data=new FormData();data.append('file',file);this.uploading=true;axios.post('/upload/blog',data).then(({data})=>{this.form.icon='/uploads'+data;this.$message.success('头像已上传，保存后生效');}).catch(err=>this.$message.error(util.errorMessage(err))).finally(()=>{this.uploading=false;this.$refs.avatar.value='';});},
+save(){if(!this.form.nickName)return this.$message.error('昵称不能为空');this.saving=true;axios.put('/user/profile',this.form).then(()=>{this.$message.success('资料已保存');setTimeout(()=>location.href='/info.html',300);}).catch(err=>this.$message.error(util.errorMessage(err))).finally(()=>{this.saving=false;});},
+goBack(){history.length>1?history.back():location.href='/info.html';}
+}});</script></body></html>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="邻里生活图片占位图">
+  <rect width="800" height="600" fill="#fff4e9"/>
+  <circle cx="641" cy="134" r="58" fill="#ffd29c"/>
+  <path d="M0 432c130-71 238-67 352-9 134 68 249 36 448-44v221H0z" fill="#dbe9d3"/>
+  <path d="M0 485c170-63 289-35 413 21 130 59 255 35 387-30v124H0z" fill="#bcd6bf"/>
+  <rect x="241" y="257" width="318" height="258" rx="12" fill="#fffdf8"/>
+  <path d="M217 257l72-100h222l72 100z" fill="#f47d51"/>
+  <path d="M258 257h284v44H258z" fill="#ffd6b7"/>
+  <rect x="277" y="320" width="90" height="102" rx="8" fill="#a8d4cf"/>
+  <rect x="435" y="320" width="90" height="102" rx="8" fill="#a8d4cf"/>
+  <path d="M377 515V379a23 23 0 0 1 46 0v136z" fill="#ba765c"/>
+  <circle cx="410" cy="445" r="5" fill="#fff4e9"/>
+</svg>

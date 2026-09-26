@@ -1,0 +1,17 @@
+{
+  "name": "yuelin-frontend-checks",
+  "private": true,
+  "description": "前端与仓库质量校验依赖，仅用于 CI 和本地验证。",
+  "scripts": {
+    "check:hygiene": "node scripts/repository-hygiene-check.mjs",
+    "check:static": "node scripts/frontend-static-check.mjs",
+    "check:render": "node scripts/frontend-render-check.mjs",
+    "check:e2e": "node scripts/acceptance-browser.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN"><head><link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>内容审核 · 悦邻生活</title><link rel="stylesheet" href="./css/element.css"><link rel="stylesheet" href="./css/main.css">
+<style>body{background:#f7f5f0;color:#25322c}main{max-width:960px;margin:32px auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between}h1{font-size:28px}.notice{background:#fff4dd;padding:16px;border-radius:8px}.bar{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}article{background:white;border:1px solid #e1e6df;border-radius:12px;margin:14px 0;padding:20px;overflow-wrap:anywhere}button{border:1px solid #718975;border-radius:6px;padding:9px 14px;background:#fff;color:#263e30;cursor:pointer}button:disabled{opacity:.45;cursor:wait}.danger{color:#ad302d}.error{color:#a12020}small{color:#63746a}input{padding:10px;max-width:130px}pre{white-space:pre-wrap}footer{display:flex;gap:18px;align-items:center}</style></head>
+<body><main id="app"><header><h1>内容审核</h1><a href="/info.html">返回个人中心</a></header>
+<p class="notice">仅配置的管理员可操作。屏蔽不删除原文；恢复与驳回会处理当前待办。每次操作保留审核人和时间记录。</p>
+<div class="bar"><button type="button" @click="switchView('pending')">待处理举报</button><button type="button" @click="switchView('history')">操作记录</button><button type="button" @click="load" :disabled="busy">刷新</button></div>
+<form @submit.prevent="act('restore', restoreId)"><label for="restore-id">恢复评论 ID </label><input id="restore-id" v-model.trim="restoreId" inputmode="numeric" required pattern="[1-9][0-9]*"><button type="submit" :disabled="busy">恢复指定评论</button></form>
+<p class="error" role="alert" v-if="error">{{error}}</p><p role="status" v-if="message">{{message}}</p>
+<section v-if="!error"><h2>{{view==='pending'?'待处理举报':'审核操作记录'}} · {{total}}</h2><p v-if="!rows.length && !busy">暂无记录</p>
+<article v-for="row in rows" :key="row.id" :data-comment-id="row.commentId || row.comment_id">
+<template v-if="view==='pending'"><small>举报 #{{row.id}} · 评论 #{{row.commentId}} · 累计举报 {{row.reportCount}} 次</small><p class="reported-content">{{row.commentContent || '原评论已删除'}}</p><p>举报理由：{{row.reason}}</p><small>举报人 {{row.userId}} · {{row.createTime}}</small>
+<div class="bar"><button class="danger" type="button" @click="act('block',row.commentId)" :disabled="busy || row.commentContent == null">屏蔽</button><button type="button" @click="act('restore',row.commentId)" :disabled="busy || row.commentContent == null">恢复 / 判定正常</button><button type="button" @click="act('dismiss',row.commentId)" :disabled="busy">驳回 / 关闭待办</button></div></template>
+<template v-else><strong>{{row.action}} · 评论 #{{row.comment_id}}</strong><p>操作人 {{row.actor_id}} · {{row.create_time}}</p><p>状态 {{row.previous_status == null ? '—' : row.previous_status}} → {{row.next_status == null ? '—' : row.next_status}}</p></template></article>
+<footer><button type="button" @click="changePage(-1)" :disabled="busy || page===1">上一页</button><span>{{page}} / {{Math.max(1,Math.ceil(total/10))}}</span><button type="button" @click="changePage(1)" :disabled="busy || page*10>=total">下一页</button></footer></section></main>
+<script src="./js/vue.js"></script><script src="./js/axios.min.js"></script><script src="./js/common.js"></script>
+<script>new Vue({el:'#app',data:{view:'pending',rows:[],total:0,page:1,busy:false,error:'',message:'',restoreId:''},created(){if(util.requireLogin())this.load();},methods:{
+load(){this.busy=true;this.error='';axios.get('/blog-comment-report/admin/'+this.view,{params:{current:this.page}}).then(r=>{this.rows=r.data||[];this.total=Number(r.total||0);}).catch(e=>{this.error=util.errorMessage(e);this.rows=[];}).finally(()=>{this.busy=false;});},
+switchView(view){this.view=view;this.page=1;this.message='';this.load();},changePage(delta){this.page+=delta;this.load();},
+act(action,id){if(!/^[1-9][0-9]*$/.test(String(id)))return; if(!window.confirm('确认对评论 #'+id+' 执行 '+action+'？'))return;this.busy=true;this.error='';axios.put('/blog-comment-report/admin/'+action+'/'+id).then(()=>{this.message='操作已保存并记录';this.page=1;this.load();}).catch(e=>{this.error=util.errorMessage(e);}).finally(()=>{this.busy=false;});}
+}});</script></body></html>

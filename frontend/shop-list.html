@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>发现好店 · 悦邻生活</title><link rel="stylesheet" href="./css/element.css?v=20260922-3"><link rel="stylesheet" href="./css/shop-list.css?v=20260922-3"><link rel="stylesheet" href="./css/main.css?v=20260922-3"><link rel="stylesheet" href="./css/theme.css?v=20260922-3"></head>
+<body class="page-shop-list"><div id="app">
+<header class="header"><button class="header-back-btn" type="button" @click="goBack" aria-label="返回"><i class="el-icon-arrow-left"></i></button><div class="header-title">{{keyword ? '搜索好店' : typeName}}</div><button class="header-search" type="button" @click="searching=!searching" aria-label="搜索"><i class="el-icon-search"></i></button></header>
+<div class="shop-search-panel" v-if="searching || keyword"><el-input v-model.trim="searchText" clearable placeholder="输入商户名称" @keyup.enter.native="searchByName"></el-input><button type="button" @click="searchByName">搜索</button></div>
+<div class="sort-bar" v-if="!keyword">
+  <div class="sort-item"><el-dropdown trigger="click" @command="handleCommand"><span class="el-dropdown-link">{{typeName}}<i class="el-icon-arrow-down el-icon--right"></i></span><el-dropdown-menu slot="dropdown"><el-dropdown-item v-for="t in types" :key="t.id" :command="t">{{t.name}}</el-dropdown-item></el-dropdown-menu></el-dropdown></div>
+  <button type="button" class="sort-item" :class="{selected:params.sortBy==='' }" @click="sortAndQuery('')">默认</button>
+  <button type="button" class="sort-item" :class="{selected:params.sortBy==='comments'}" @click="sortAndQuery('comments')">人气</button>
+  <button type="button" class="sort-item" :class="{selected:params.sortBy==='score'}" @click="sortAndQuery('score')">评分</button>
+</div>
+<main class="shop-list" @scroll="onScroll">
+  <div class="shop-empty" v-if="!loading && !shops.length">没有找到相关商户，换个关键词或分类试试吧。</div>
+  <article class="shop-box" v-for="s in shops" :key="s.id" @click="toDetail(s.id)">
+    <div class="shop-img"><img :src="s.cover" :alt="s.name"></div><div class="shop-info"><h2 class="shop-title shop-item">{{s.name}}</h2>
+    <div class="shop-rate shop-item"><el-rate disabled :value="(s.score || 0)/10" text-color="#F63" show-score></el-rate><span>{{s.comments || 0}}条</span></div>
+    <div class="shop-area shop-item"><span>{{s.area}}</span><span v-if="s.distance">{{s.distance < 1000 ? s.distance.toFixed(0)+'m' : (s.distance/1000).toFixed(1)+'km'}}</span></div>
+    <div class="shop-avg shop-item">￥{{s.avgPrice}}/人</div><div class="shop-address shop-item"><i class="el-icon-map-location"></i><span>{{s.address}}</span></div></div>
+  </article><div class="shop-loading" v-if="loading">正在加载...</div><div class="shop-loading" v-if="noMore && shops.length">已经到底了</div>
+</main></div>
+<script src="./js/vue.js?v=20260922-3"></script><script src="./js/axios.min.js?v=20260922-3"></script><script src="./js/element.js?v=20260922-3"></script><script src="./js/common.js?v=20260922-3"></script>
+<script>new Vue({el:'#app',data:{types:[],shops:[],typeName:'好店',keyword:'',searchText:'',searching:false,loading:false,noMore:false,params:{typeId:1,current:1,sortBy:'',x:null,y:null}},created(){this.keyword=util.getUrlParam('keyword');this.searchText=this.keyword;this.params.typeId=util.getUrlParam('type')||1;this.typeName=util.getUrlParam('name')||'发现好店';this.queryTypes();this.keyword?this.queryByName():this.queryShops();},methods:{
+queryTypes(){axios.get('/shop-type/list').then(({data})=>this.types=data||[]).catch(e=>this.$message.error(util.errorMessage(e)));},
+prepare(list){return (list||[]).map(s=>{s.cover=(s.images||'').split(',')[0]||'/imgs/blogs/placeholder.svg';return s;});},
+queryByName(){this.loading=true;axios.get('/shop/of/name',{params:{name:this.keyword}}).then(({data})=>{this.shops=this.prepare(data);this.noMore=true;}).catch(e=>this.$message.error(util.errorMessage(e))).finally(()=>this.loading=false);},
+queryShops(current=this.params.current){if(this.loading||this.noMore)return;this.loading=true;axios.get('/shop/of/type',{params:{...this.params,current}}).then(({data})=>{const page=this.prepare(data);this.shops=this.shops.concat(page);this.params.current=current;if(!page.length)this.noMore=true;}).catch(e=>this.$message.error(util.errorMessage(e))).finally(()=>this.loading=false);},
+searchByName(){if(!this.searchText)return this.$message.warning('请输入商户名称');location.href='/shop-list.html?keyword='+encodeURIComponent(this.searchText);},
+handleCommand(t){location.href='/shop-list.html?type='+encodeURIComponent(t.id)+'&name='+encodeURIComponent(t.name);},
+sortAndQuery(sortBy){if(this.params.sortBy===sortBy&&this.shops.length)return;this.params.sortBy=sortBy;this.params.current=1;this.shops=[];this.noMore=false;this.queryShops();},
+goBack(){history.length>1?history.back():location.href='/';},toDetail(id){location.href='/shop-detail.html?id='+encodeURIComponent(id);},
+onScroll(e){if(this.keyword||this.loading||this.noMore)return;const el=e.target;if(el.scrollTop+el.offsetHeight+24>=el.scrollHeight)this.queryShops(this.params.current+1);}
+}});</script></body></html>

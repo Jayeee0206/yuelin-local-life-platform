@@ -1,0 +1,62 @@
+HELP.md
+target/
+build/
+/dist/
+
+### IDEs ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.idea/
+*.iws
+*.iml
+*.ipr
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+.vscode/
+
+### Local secrets ###
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+/secrets/
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+### Runtime and generated data ###
+*.log
+logs/
+*.pid
+/data/
+.DS_Store
+__pycache__/
+node_modules/
+
+### Test and CI artifacts ###
+/docs/benchmark/results.jtl
+/docs/benchmark/html-report/
+/smoke-*.json
+/docker-smoke-test.log
+/ci-artifacts/
+/playwright-report/
+/test-results/
+
+### Local review and handover artifacts ###
+.arena/
+/.githooks/
+/PROJECT_WORKSPACE.md
+/docs/HANDOVER.md
+/docs/mcp-*.md
+/docs/test-reports/
+/nginx-*/
